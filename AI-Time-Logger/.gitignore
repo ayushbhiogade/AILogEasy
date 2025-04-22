@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json # Often committed, but can cause conflicts. Optional.
+yarn.lock # Often committed, but can cause conflicts. Optional.
+
+# Editor/OS specific
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.local
+
+# Secrets (example - ensure real secrets are NEVER committed)
+*.env
+secrets/
+*.pem
+*.key 

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Assisted Time Logger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Apply Inter font globally */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for better aesthetics (optional) */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Simple transition for modal */
+        .modal-hidden {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+        }
+        .modal-visible {
+            display: flex;
+            opacity: 1;
+            transition: opacity 0.3s ease-in;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-700">AI-Assisted Time Logger</h1>
+            <p class="text-gray-500">Log your time faster with AI suggestions.</p>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+            <div class="md:col-span-2 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">My Tasks (From Project Tool)</h2>
+                <div id="tasks-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                    <div class="text-center text-gray-500 py-4">Loading tasks...</div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">✨ AI Suggestions</h2>
+                <div id="suggestions-list" class="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                    <div class="text-center text-gray-500 py-4">Loading suggestions...</div>
+                </div>
+                 <div class="mt-6 pt-4 border-t">
+                    <h3 class="text-lg font-semibold mb-2">Permissions</h3>
+                    <p class="text-sm text-gray-600 mb-3">Grant access to improve suggestions:</p>
+                    <div class="space-y-2">
+                        <button class="w-full text-left bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm py-2 px-3 rounded-md transition duration-150">
+                            📅 Connect Calendar
+                        </button>
+                        <button class="w-full text-left bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm py-2 px-3 rounded-md transition duration-150">
+                            📄 Connect File Access
+                        </button>
+                         <button class="w-full text-left bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm py-2 px-3 rounded-md transition duration-150">
+                            💬 Connect Comms (Slack/Email)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="log-modal" class="modal-hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
+            <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">Log Time</h3>
+                    <button id="close-modal-btn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                </div>
+                <form id="log-time-form">
+                    <div class="mb-4">
+                        <label for="modal-task-name" class="block text-sm font-medium text-gray-700 mb-1">Task</label>
+                        <input type="text" id="modal-task-name" class="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-100" readonly>
+                        <input type="hidden" id="modal-task-id">
+                    </div>
+                    <div class="mb-4">
+                        <label for="modal-duration" class="block text-sm font-medium text-gray-700 mb-1">Duration (e.g., 1h 30m)</label>
+                        <input type="text" id="modal-duration" placeholder="Enter duration" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="modal-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+                        <textarea id="modal-notes" rows="3" placeholder="Add any relevant notes..." class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                    </div>
+                     <div class="mb-6">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="modal-billable" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-offset-0 focus:ring-blue-200 focus:ring-opacity-50">
+                            <span class="ml-2 text-sm text-gray-600">Billable</span>
+                        </label>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" id="cancel-log-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-md transition duration-150">Cancel</button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-150">Save Log</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="notification-area" class="fixed bottom-4 right-4 space-y-2 z-50">
+            </div>
+
+    </div>
+
+    <script>
+        // --- Mock Data ---
+        const mockTasks = [
+            { id: 'TASK-101', name: 'Develop User Authentication Flow', project: 'Project Alpha', timeLogged: '1h 15m', timerRunning: false, timerStartTime: null },
+            { id: 'TASK-102', name: 'Design Landing Page Mockups', project: 'Project Beta', timeLogged: '0h 45m', timerRunning: false, timerStartTime: null },
+            { id: 'TASK-103', name: 'API Integration Testing', project: 'Project Alpha', timeLogged: '2h 0m', timerRunning: false, timerStartTime: null },
+            { id: 'TASK-104', name: 'Client Meeting Preparation', project: 'Project Beta', timeLogged: '0h 0m', timerRunning: false, timerStartTime: null },
+            { id: 'TASK-105', name: 'Refactor Database Schema', project: 'Project Gamma', timeLogged: '0h 0m', timerRunning: false, timerStartTime: null },
+        ];
+
+        const mockSuggestions = [
+            { taskId: 'TASK-104', reason: 'Based on Calendar event "Client Beta Sync"', taskName: 'Client Meeting Preparation' },
+            { taskId: 'TASK-101', reason: 'Based on recent file "auth_service.py"', taskName: 'Develop User Authentication Flow' },
+            { taskId: 'TASK-102', reason: 'Based on app usage "Figma"', taskName: 'Design Landing Page Mockups' },
+        ];
+
+        // --- Global Variables & Elements ---
+        const tasksListEl = document.getElementById('tasks-list');
+        const suggestionsListEl = document.getElementById('suggestions-list');
+        const logModalEl = document.getElementById('log-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const cancelLogBtn = document.getElementById('cancel-log-btn');
+        const logTimeForm = document.getElementById('log-time-form');
+        const modalTaskNameInput = document.getElementById('modal-task-name');
+        const modalTaskIdInput = document.getElementById('modal-task-id');
+        const modalDurationInput = document.getElementById('modal-duration');
+        const modalNotesInput = document.getElementById('modal-notes');
+        const modalBillableCheckbox = document.getElementById('modal-billable');
+        const notificationAreaEl = document.getElementById('notification-area');
+
+        let timers = {}; // To store interval IDs for running timers
+
+        // --- Functions ---
+
+        // Function to display notifications
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `px-4 py-2 rounded-md shadow-lg text-sm font-medium ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
+            notification.textContent = message;
+            notificationAreaEl.appendChild(notification);
+
+            // Auto-remove notification after 3 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Format seconds into HH:MM:SS
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+
+        // Start or stop a timer for a task
+        function toggleTimer(taskId) {
+            const task = mockTasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const timerDisplay = document.getElementById(`timer-${taskId}`);
+            const timerButton = document.getElementById(`timer-btn-${taskId}`);
+
+            if (task.timerRunning) {
+                // Stop timer
+                clearInterval(timers[taskId]);
+                delete timers[taskId];
+                task.timerRunning = false;
+                task.timerStartTime = null;
+                timerButton.textContent = 'Start Timer';
+                timerButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+                timerButton.classList.add('bg-green-500', 'hover:bg-green-600');
+                // Optionally, open log modal with elapsed time
+                const elapsedSeconds = Math.floor((Date.now() - task.timerStartTime) / 1000);
+                 // For simplicity, just stopping here. A real app might auto-log or prompt.
+                showNotification(`Timer stopped for ${task.id}.`, 'success');
+
+            } else {
+                // Start timer
+                task.timerRunning = true;
+                task.timerStartTime = Date.now();
+                timerButton.textContent = 'Stop Timer';
+                timerButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+                timerButton.classList.add('bg-red-500', 'hover:bg-red-600');
+
+                timers[taskId] = setInterval(() => {
+                    const elapsedSeconds = Math.floor((Date.now() - task.timerStartTime) / 1000);
+                    timerDisplay.textContent = formatTime(elapsedSeconds);
+                }, 1000);
+                 showNotification(`Timer started for ${task.id}.`, 'success');
+            }
+        }
+
+
+        // Render the list of tasks
+        function renderTasks() {
+            if (!tasksListEl) return;
+            tasksListEl.innerHTML = ''; // Clear existing tasks
+            mockTasks.forEach(task => {
+                const taskElement = document.createElement('div');
+                taskElement.className = 'p-4 border border-gray-200 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3';
+                taskElement.innerHTML = `
+                    <div class="flex-grow">
+                        <h3 class="font-semibold text-gray-800">${task.name} <span class="text-xs font-normal text-gray-500">(${task.id})</span></h3>
+                        <p class="text-sm text-gray-500">${task.project}</p>
+                        <p class="text-sm text-gray-600 mt-1">Logged: ${task.timeLogged}</p>
+                        <div class="text-sm text-blue-600 font-mono mt-1" id="timer-${task.id}">00:00:00</div>
+                    </div>
+                    <div class="flex space-x-2 mt-2 sm:mt-0 flex-shrink-0">
+                        <button id="timer-btn-${task.id}" class="bg-green-500 hover:bg-green-600 text-white text-xs font-medium py-1 px-3 rounded-md transition duration-150">
+                            Start Timer
+                        </button>
+                        <button data-task-id="${task.id}" data-task-name="${task.name}" class="quick-log-btn bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium py-1 px-3 rounded-md transition duration-150">
+                            Log Time
+                        </button>
+                    </div>
+                `;
+                tasksListEl.appendChild(taskElement);
+
+                // Add event listeners for buttons within this task element
+                const timerButton = taskElement.querySelector(`#timer-btn-${task.id}`);
+                if (timerButton) {
+                    timerButton.addEventListener('click', () => toggleTimer(task.id));
+                }
+                const logButton = taskElement.querySelector('.quick-log-btn');
+                 if (logButton) {
+                    logButton.addEventListener('click', () => openLogModal(task.id, task.name));
+                }
+
+            });
+             // Add listeners for newly added log buttons
+            addLogButtonListeners();
+        }
+
+        // Render AI suggestions
+        function renderSuggestions() {
+             if (!suggestionsListEl) return;
+             suggestionsListEl.innerHTML = ''; // Clear existing
+             mockSuggestions.forEach(suggestion => {
+                const suggestionElement = document.createElement('div');
+                suggestionElement.className = 'p-3 border border-gray-200 rounded-lg bg-blue-50';
+                suggestionElement.innerHTML = `
+                    <p class="text-sm font-medium text-gray-700">${suggestion.taskName}</p>
+                    <p class="text-xs text-gray-500 italic mb-2">${suggestion.reason}</p>
+                    <button data-task-id="${suggestion.taskId}" data-task-name="${suggestion.taskName}" class="quick-log-btn bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium py-1 px-3 rounded-md transition duration-150 w-full sm:w-auto">
+                        Log Time for This
+                    </button>
+                `;
+                suggestionsListEl.appendChild(suggestionElement);
+             });
+             // Add listeners for newly added log buttons
+            addLogButtonListeners();
+        }
+
+        // Open the log time modal
+        function openLogModal(taskId, taskName) {
+            modalTaskIdInput.value = taskId;
+            modalTaskNameInput.value = taskName;
+            modalDurationInput.value = ''; // Clear previous values
+            modalNotesInput.value = '';
+            modalBillableCheckbox.checked = false;
+            logModalEl.classList.remove('modal-hidden');
+            logModalEl.classList.add('modal-visible');
+            modalDurationInput.focus(); // Focus duration input
+        }
+
+        // Close the log time modal
+        function closeModal() {
+            logModalEl.classList.add('modal-hidden');
+            logModalEl.classList.remove('modal-visible');
+            logTimeForm.reset(); // Reset form fields
+        }
+
+        // Handle form submission
+        function handleLogSubmit(event) {
+            event.preventDefault();
+            const taskId = modalTaskIdInput.value;
+            const taskName = modalTaskNameInput.value;
+            const duration = modalDurationInput.value;
+            const notes = modalNotesInput.value;
+            const isBillable = modalBillableCheckbox.checked;
+
+            if (!duration.trim()) {
+                showNotification('Please enter a duration.', 'error');
+                return;
+            }
+
+            // --- Simulation ---
+            // In a real app, you'd send this data to your backend/API
+            // to save the time log and potentially update the PM tool.
+            console.log('Logging time:', { taskId, taskName, duration, notes, isBillable });
+
+            // Update mock data (simple example, doesn't parse/add duration properly)
+            const task = mockTasks.find(t => t.id === taskId);
+            if (task) {
+                // This is a basic update, a real app would parse and sum durations
+                task.timeLogged = `${duration} (new)`;
+            }
+            renderTasks(); // Re-render tasks to show updated logged time (simulated)
+            // --- End Simulation ---
+
+            showNotification(`Time logged for ${taskName}.`, 'success');
+            closeModal();
+        }
+
+        // Add event listeners to all quick log buttons
+        function addLogButtonListeners() {
+             document.querySelectorAll('.quick-log-btn').forEach(button => {
+                // Remove existing listener to prevent duplicates if re-rendering
+                button.replaceWith(button.cloneNode(true));
+            });
+             document.querySelectorAll('.quick-log-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const taskId = e.target.dataset.taskId;
+                    const taskName = e.target.dataset.taskName;
+                    openLogModal(taskId, taskName);
+                });
+            });
+        }
+
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Simulate loading data after a short delay
+            setTimeout(() => {
+                renderTasks();
+                renderSuggestions();
+            }, 500); // 0.5 second delay
+
+            // Modal close listeners
+            closeModalBtn.addEventListener('click', closeModal);
+            cancelLogBtn.addEventListener('click', closeModal);
+            // Close modal if clicking outside the content
+            logModalEl.addEventListener('click', (event) => {
+                if (event.target === logModalEl) {
+                    closeModal();
+                }
+            });
+
+            // Form submission listener
+            logTimeForm.addEventListener('submit', handleLogSubmit);
+        });
+
+    </script>
+
+</body>
+</html>
