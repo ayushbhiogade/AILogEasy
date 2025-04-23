@@ -3,7 +3,7 @@ from sqlmodel import Field, SQLModel, Column
 from sqlalchemy import String # Using SQLAlchemy for unique constraint
 
 class UserBase(SQLModel):
-    email: str = Field(index=True, sa_column=Column("email", String, unique=True))
+    email: str = Field(sa_column=Column("email", String, unique=True))
     # username: Optional[str] = Field(default=None, index=True, unique=True) # Optional username
     full_name: Optional[str] = None
     is_active: bool = Field(default=True)
